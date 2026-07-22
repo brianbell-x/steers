@@ -27,9 +27,10 @@ Use Node.js 22.19 or newer. Install the integration dependencies:
 npm --prefix ./implementations/pi install
 ```
 
-Add an example to the shared project location:
+Add an evaluator system prompt and an example to the shared project location:
 
 ```text
+<project>/.agents/steers/SYSTEM.md
 <project>/.agents/steers/defensive-code/STEER.md
 ```
 
@@ -51,10 +52,11 @@ are the portable convention. They work here only while this adapter is loaded;
 another harness that uses `.agents/` will ignore them unless it implements
 Steers explicitly.
 
-An optional `SYSTEM.md` beside the steer directories can replace the adapter's
-default judge prompt. The adapter appends each steer policy to that replacement
-system message. This file is a Pi integration feature, not part of the Steers
-format.
+A non-empty `SYSTEM.md` beside the steer directories supplies the evaluator
+system prompt. The adapter appends each steer policy to that message. There is
+no default prompt: if `SYSTEM.md` is missing or empty, Pi shows a non-blocking
+error and the adapter runs no steers. This file is a Pi integration feature,
+not part of the Steers format.
 
 ## Verify the integration
 

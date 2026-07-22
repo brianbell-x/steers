@@ -39,7 +39,8 @@ export interface Steer {
 }
 
 export interface SteersConfig {
-  systemPrompt: string;
+  systemPrompt: string | null;
+  systemPromptError: string | null;
   steers: Steer[];
   diagnostics: string[];
 }
@@ -108,16 +109,9 @@ const VERDICT_GOOGLE_SCHEMA = {
   required: ["shouldSteer", "message"],
 } as const;
 
-const DEFAULT_SYSTEM_PROMPT = [
-  "You evaluate whether a steer should correct an AI agent.",
-  "Judge only from the supplied conversation and tool activity.",
-  "Intervene only when the issue is specific, actionable, and clearly covered by the policy.",
-  "Return only valid JSON with shouldSteer and message.",
-  'Use {"shouldSteer":false,"message":null} when no correction is required.',
-].join("\n");
-
-const DEFAULT_CONFIG: SteersConfig = {
-  systemPrompt: DEFAULT_SYSTEM_PROMPT,
+const EMPTY_CONFIG: SteersConfig = {
+  systemPrompt: null,
+  systemPromptError: null,
   steers: [],
   diagnostics: [],
 };
@@ -298,14 +292,17 @@ export function resolveSteersDirs(
 
 export function loadSteersDir(steersDir: string): SteersConfig {
   const systemPath = path.join(steersDir, SYSTEM_FILE_NAME);
-  let systemPrompt = DEFAULT_SYSTEM_PROMPT;
+  let systemPrompt: string | null = null;
+  let systemPromptError: string | null = null;
   const diagnostics: string[] = [];
   if (existsSync(systemPath)) {
     systemPrompt = readFileSync(systemPath, "utf8").trim();
     if (systemPrompt === "") {
-      diagnostics.push(`${systemPath}: system prompt must not be empty.`);
-      systemPrompt = DEFAULT_SYSTEM_PROMPT;
+      systemPrompt = null;
+      systemPromptError = `${systemPath} is empty; no steers will run. Add an evaluator system prompt to enable them.`;
     }
+  } else {
+    systemPromptError = `No ${SYSTEM_FILE_NAME} was found at ${systemPath}; no steers will run. Create a non-empty ${SYSTEM_FILE_NAME} there to enable them.`;
   }
 
   const steers: Steer[] = [];
@@ -339,7 +336,7 @@ export function loadSteersDir(steersDir: string): SteersConfig {
     steers.push(steer);
   }
 
-  return { systemPrompt, steers, diagnostics };
+  return { systemPrompt, systemPromptError, steers, diagnostics };
 }
 
 export function loadSteersConfig(
@@ -347,15 +344,19 @@ export function loadSteersConfig(
   home = homedir(),
 ): SteersConfig {
   const steersDirs = resolveSteersDirs(cwd, home);
-  if (steersDirs.length === 0) return DEFAULT_CONFIG;
+  if (steersDirs.length === 0) return EMPTY_CONFIG;
 
-  let systemPrompt = DEFAULT_SYSTEM_PROMPT;
+  let systemPrompt: string | null = null;
+  let systemPromptError: string | null = null;
   const steers: Steer[] = [];
   const diagnostics: string[] = [];
   const seen = new Set<string>();
   for (const [index, steersDir] of steersDirs.entries()) {
     const config = loadSteersDir(steersDir);
-    if (index === 0) systemPrompt = config.systemPrompt;
+    if (index === 0) {
+      systemPrompt = config.systemPrompt;
+      systemPromptError = config.systemPromptError;
+    }
     diagnostics.push(...config.diagnostics);
     for (const steer of config.steers) {
       if (seen.has(steer.name)) {
@@ -368,7 +369,7 @@ export function loadSteersConfig(
       steers.push(steer);
     }
   }
-  return { systemPrompt, steers, diagnostics };
+  return { systemPrompt, systemPromptError, steers, diagnostics };
 }
 
 export function parseVerdict(raw: string): Verdict | null {
@@ -522,7 +523,7 @@ export function appendLogRecord(cwd: string, record: LogRecord): void {
 }
 
 export default function steersForPi(pi: ExtensionAPI): void {
-  let config: SteersConfig = DEFAULT_CONFIG;
+  let config: SteersConfig = EMPTY_CONFIG;
   let turnContext: TranscriptMessage[] = [];
 
   pi.on("session_start", (_event, ctx) => {
@@ -532,8 +533,11 @@ export default function steersForPi(pi: ExtensionAPI): void {
       for (const diagnostic of config.diagnostics) {
         safeNotify(ctx, `steers: ${diagnostic}`, "warning");
       }
+      if (config.systemPromptError) {
+        safeNotify(ctx, `steers: ${config.systemPromptError}`, "error");
+      }
     } catch (error) {
-      config = DEFAULT_CONFIG;
+      config = EMPTY_CONFIG;
       safeNotify(ctx, `steers: ${errorMessage(error)}`, "warning");
     }
   });
@@ -576,6 +580,8 @@ async function runSteersForTrigger(
   trigger: SteerTrigger,
   transcript: TranscriptMessage[],
 ): Promise<void> {
+  if (config.systemPrompt === null) return;
+
   const steers = config.steers.filter((steer) => steer.trigger === trigger);
   if (steers.length === 0) return;
 

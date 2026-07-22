@@ -116,7 +116,7 @@ describe("STEER.md parsing", () => {
 });
 
 describe("steer directory loading", () => {
-  it("loads an optional SYSTEM.md and every STEER.md in sorted order", () => {
+  it("loads SYSTEM.md and every STEER.md in sorted order", () => {
     const dir = makeSteersDir({
       "SYSTEM.md": "Custom judge prompt.",
       "beta-steer/STEER.md":
@@ -128,23 +128,28 @@ describe("steer directory loading", () => {
 
     const config = loadSteersDir(dir);
     expect(config.systemPrompt).toBe("Custom judge prompt.");
+    expect(config.systemPromptError).toBeNull();
     expect(config.steers.map((steer) => steer.name)).toEqual([
       "alpha-steer",
       "beta-steer",
     ]);
   });
 
-  it("uses the default judge prompt and reports an empty override", () => {
+  it("disables steers and reports a missing or empty SYSTEM.md", () => {
     const missing = makeSteersDir({
       "a/STEER.md":
         "---\nname: a\ndescription: Policy.\ntrigger: turn_end\nmode: async\n---\nPolicy.",
     });
-    expect(loadSteersDir(missing).systemPrompt).toContain("whether a steer");
+    const missingConfig = loadSteersDir(missing);
+    expect(missingConfig.systemPrompt).toBeNull();
+    expect(missingConfig.systemPromptError).toContain("No SYSTEM.md");
+    expect(missingConfig.systemPromptError).toContain("no steers will run");
 
     const empty = makeSteersDir({ "SYSTEM.md": "  \n" });
     const emptyConfig = loadSteersDir(empty);
-    expect(emptyConfig.systemPrompt).toContain("whether a steer");
-    expect(emptyConfig.diagnostics[0]).toContain("must not be empty");
+    expect(emptyConfig.systemPrompt).toBeNull();
+    expect(emptyConfig.systemPromptError).toContain("is empty");
+    expect(emptyConfig.systemPromptError).toContain("no steers will run");
   });
 
   it("isolates an invalid steer without disabling valid steers", () => {

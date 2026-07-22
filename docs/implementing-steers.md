@@ -56,6 +56,13 @@ Build a fresh evaluator request. Its system message replaces any system message
 that would otherwise be used for the evaluator. Append the complete policy body
 to that system message.
 
+Require the evaluator system prompt to be configured explicitly. Do not use a
+built-in or default prompt as a fallback. If the configured source is missing
+or emptyâ€”for example, an implementation expects `SYSTEM.md` but cannot find
+itâ€”show a non-blocking error in the harness UI that identifies the missing
+configuration and states that no steers will run. Skip all steer evaluations
+until the prompt is available.
+
 ```text
 System: Decide whether this policy requires a correction.
 
@@ -126,6 +133,7 @@ locations, and any required configuration or environment variables and values.
 - [ ] Support `turn_end` and `run_end`.
 - [ ] Verify native event timing against both semantic lifecycle points.
 - [ ] Support `blocking` and `async`.
+- [ ] Require an explicit evaluator system prompt; if it is unavailable, report a non-blocking error and run no steers.
 - [ ] Replace the evaluator system message, append the policy, and send relevant conversation and tool activity as one user message.
 - [ ] Use a native verdict schema or forced tool when available, then validate the result.
 - [ ] Deliver corrections before the first model request that starts after the verdict is ready.
