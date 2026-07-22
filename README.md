@@ -3,11 +3,12 @@
 **A portable standard for correcting agents while they work.**
 
 Steers is a lightweight, open format for policy-driven intervention in AI agent
-runs. A steer is disposable oversight: it spawns when a lifecycle event ends,
-evaluates the agent's work against its policy, and — only when the policy is
-violated — fires a specific correction back into the run. Then it is gone.
-No dashboards, no daemons, no watchers. Just policy that corrects agents
-mid-run, at the exact moment correction still matters.
+runs. A steer is a throwaway agent: when a lifecycle event ends, it spawns a
+one-shot evaluator — running on the harness's own model — that judges the
+agent's work against the steer's policy. Only when the policy is violated does
+it fire a specific correction back into the run. Then it is gone.
+No dashboards, no daemons, no watchers. Just judged policy that course-corrects
+agents mid-run, at the exact moment correction still matters.
 
 At its core, a steer is a folder that contains a `STEER.md` file:
 
@@ -66,7 +67,7 @@ Steers makes corrective policy portable and active inside the run.
 ## How Steers work
 
 1. **Trigger** — A lifecycle event ends (for example `turn_end`), and each matching steer spawns a one-shot evaluation.
-2. **Evaluate** — The harness applies each matching policy to the relevant conversation and tool activity.
+2. **Evaluate** — A one-shot evaluator — the harness's own model, by default — judges the relevant conversation and tool activity against each matching policy.
 3. **Deliver** — A positive verdict sends the correction through the harness, before the next model request. Nothing persists between events.
 
 The format does not require a specific model provider, programming language, or
