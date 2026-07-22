@@ -1,0 +1,9 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.agents/
+*.log
+
+# Local project material excluded from the published repository
+/tmp/

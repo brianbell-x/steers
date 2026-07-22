@@ -1,0 +1,46 @@
+{
+	"name": "steers-pi",
+	"version": "0.1.0",
+	"description": "Pi integration for the Steers open standard",
+	"license": "Apache-2.0",
+	"type": "module",
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"main": "./steers.ts",
+	"files": [
+		"steers.ts",
+		"README.md"
+	],
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"pi": {
+		"extensions": [
+			"./steers.ts"
+		]
+	},
+	"dependencies": {
+		"yaml": "2.9.0"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-ai": "0.80.3",
+		"@earendil-works/pi-coding-agent": "0.80.3"
+	},
+	"peerDependenciesMeta": {
+		"@earendil-works/pi-ai": {
+			"optional": true
+		},
+		"@earendil-works/pi-coding-agent": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@earendil-works/pi-ai": "^0.80.3",
+		"@earendil-works/pi-coding-agent": "^0.80.3",
+		"@types/node": "24.12.4",
+		"typescript": "5.9.3",
+		"vitest": "4.1.9"
+	}
+}
